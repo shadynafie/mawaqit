@@ -678,8 +678,6 @@ async def test_async_get_options_flow(mock_config_entry_setup) -> None:
 
     # Verify that the result is an instance of the expected options flow handler
     assert isinstance(options_flow, config_flow.MawaqitPrayerOptionsFlowHandler)
-    # check that the config entry is correctly passed to the handler
-    assert options_flow.config_entry == mock_config_entry_setup
 
 
 @pytest.mark.asyncio
@@ -693,8 +691,9 @@ async def test_options_flow_valid_input(
     mock_mosques, mocked_mosques_data = mock_mosques_test_data
 
     # Initialize the options flow
-    flow = config_flow.MawaqitPrayerOptionsFlowHandler(config_entry_setup)
+    flow = config_flow.MawaqitPrayerOptionsFlowHandler()
     flow.hass = hass  # Assign HomeAssistant instance
+    flow._config_entry = config_entry_setup
 
     with (
         patch.object(flow, "store", new=setup_test_environment),
@@ -744,8 +743,9 @@ async def test_options_flow_no_input_reopens_form(
     mock_mosques, mocked_mosques_data = mock_mosques_test_data
 
     # Initialize the options flow
-    flow = config_flow.MawaqitPrayerOptionsFlowHandler(config_entry_setup)
+    flow = config_flow.MawaqitPrayerOptionsFlowHandler()
     flow.hass = hass  # Assign HomeAssistant instance
+    flow._config_entry = config_entry_setup
 
     with (
         patch.object(flow, "store", new=setup_test_environment),
@@ -793,8 +793,9 @@ async def test_options_flow_no_input_error_reopens_form(
         ),
     ):
         # Initialize the options flow
-        flow = config_flow.MawaqitPrayerOptionsFlowHandler(config_entry_setup)
+        flow = config_flow.MawaqitPrayerOptionsFlowHandler()
         flow.hass = hass  # Assign HomeAssistant instance
+        flow._config_entry = config_entry_setup
 
         # Simulate the init step
         result = await flow.async_step_init(user_input=None)
