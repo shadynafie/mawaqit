@@ -1,116 +1,177 @@
-# A MAWAQIT component for Home Assistant
+# MAWAQIT Prayer Times for Home Assistant
 
-## Smart home, Smart mosque : automate things based on prayer times
+### Smart home, smart mosque -- automate your life around prayer times
 
 ٱلسَّلَامُ عَلَيْكُمْ وَرَحْمَةُ ٱللَّٰهِ وَبَرَكَاتُهُ
 
-Essalāmu ʿalaykum wa rahmatu Allahi wa barakatuh
+---
 
-## English
+> This is a maintained fork of the original [mawaqit/home-assistant](https://github.com/mawaqit/home-assistant) integration. Full credit goes to the original MAWAQIT team ([@MAWAQIT](https://github.com/MAWAQIT), [@moha-tah](https://github.com/moha-tah), [@Yeyvo](https://github.com/Yeyvo)). This fork fixes authentication issues that prevented prayer times from loading.
 
-This component allows you to integrate the data of your mawaqit mosque into Home Assistant. To do this, a Mawaqit account from **https://mawaqit.net** is required.
+---
 
-### Integration installation options
+## What is this?
 
-The component is added to Home Assistant in the form of an integration. There are two methods to install the integration as mentioned below.
+This integration brings your mosque's prayer times from [mawaqit.net](https://mawaqit.net) directly into Home Assistant. You can use it to:
 
-#### With [HACS](https://www.hacs.xyz/)
+- Display prayer times and iqama times on your dashboard
+- Play the adhan automatically on a speaker at prayer time
+- Turn on lights before Fajr
+- Open shutters at Shuruq
+- Any other automation you can imagine!
 
-If you have HACS installed on your Home Assistant then you can use it to install Mawaqit integration.
+**You need a free account on [mawaqit.net](https://mawaqit.net) to use this integration.**
 
-* Go to your HACS dashboard, then open the settings (3 dots at the top right corner) and select **Custom Repositories**.
-* Now in **Repository** text field put the URL of this repo: https://github.com/mawaqit/home-assistant
-* In the type field select **Integration**
-* Click **Add** button to finish the setup
+---
 
-#### Manual installation
+## Installation
 
-For the manual installation, you must copy the **[custom_components/mawaqit](custom_components/mawaqit)** folder from this repository to the _custom_components_ directory of your Home Assistant installation (create it if it does not exist).
+### Option 1: HACS (Recommended)
 
-### Setup Mawaqit integration
+1. Open **HACS** in Home Assistant
+2. Click the 3-dot menu (top right) and select **Custom repositories**
+3. Paste this URL: `https://github.com/shadynafie/mawaqit`
+4. Select **Integration** as the category
+5. Click **Add**
+6. Search for **"MAWAQIT"** in HACS and click **Install**
+7. **Restart Home Assistant**
 
-* Restart Home Assistant installation (e.g. From UI go to _Settings > System > Hardware > Power button at top right_)
-* After restarting Home Assistant, go to _Settings > Devices & Services > Add Integration_ and search for **"Mawaqit"**.
-* Enter the login and password of your **mawaqit.net** account and click on **Submit**.
-* Based on your GPS coordinates (latitude/longitude) stored in Home Assistant, the component searches for Mawaqit mosques within a radius of **20km** around you and will ask you to select your **preferred** mosque.
+### Option 2: Manual
 
-### Components of Mawaqit Integration
+1. Download the `custom_components/mawaqit` folder from this repository
+2. Copy it into your Home Assistant `custom_components` directory (create it if it doesn't exist)
+3. **Restart Home Assistant**
 
-Integration allows you to add 14 components of type ```sensor``` :
+---
 
-* The 5 prayer times
-* The Iqama of 5 prayers,
-* The Shuruq
-* The Jumu'a time
-* A sensor ```sensor.my_mosque``` which summarizes all the data of your mosque (address, website, jumua, iqama, etc...)
+## Setup
 
-## Automation Examples
+1. After restarting, go to **Settings > Devices & Services > Add Integration**
+2. Search for **"Mawaqit"**
+3. Enter your **mawaqit.net** username and password
+4. Choose how to find your mosque:
+   - **By location** -- finds mosques within 20 km of your Home Assistant coordinates
+   - **By keyword** -- search for any mosque by name
+5. Select your preferred mosque from the list
+6. Done! Your sensors will appear automatically
 
-In the `automations.yaml` file, you have an example of code to create automation in Home Assistant with Mawaqit sensors, in particular to launch the athan at the time of prayer or to launch specific actions (read the Quran, increase the heating 10 minutes before Al-Fajr, open the shutters during shuruq, etc...).
-**NOTE**: The actions are to be adapted according to your Home Assistant installation.
+### Changing your mosque later
 
-* ```/config/configuration.yaml```
-  Make sure that you have time sensor configured in your Home Assistant configuration. In the `automations.yaml` example this sensor is used to make decision when to launch Azan.
+Go to **Settings > Devices & Services**, find MAWAQIT, click **Configure**, and select a different mosque from the list.
+
+---
+
+## Available sensors
+
+The integration creates the following sensors:
+
+| Sensor | Description |
+|--------|-------------|
+| Fajr, Dhuhr, Asr, Maghrib, Isha | Prayer times (adhan) |
+| Fajr Iqama, Dhuhr Iqama, Asr Iqama, Maghrib Iqama, Isha Iqama | Iqama times |
+| Shurouq / Sunrise | Sunrise time |
+| Jumua, Jumua 2 | Friday prayer times |
+| Next Salat Name | Name of the next prayer |
+| Next Salat Time | Time of the next prayer |
+| Next Salat Preparation | Time to prepare for next prayer |
+| Mosque Label, Localisation, URL, Image | Your mosque's information |
+
+---
+
+## Automation examples
+
+### Play adhan at prayer time
 
 ```yaml
-homeassistant:
-sensor:
-  platform: time_date
-  display_options:
-    - 'time'
-    - 'date_time'
-```
-
-* ```/config/automations.yaml```
-
-```yaml
-- id: 'fajr_wakeup'
-  alias: Turn on bedroom light and Alexa routine, 20 min before Fajr Athan
+- id: "isha_adhan"
+  alias: Play Isha Adhan
   trigger:
-  - platform: template
-    value_template: >
-      {% set before = (as_timestamp(states("sensor.fajr_adhan")) - 20 * 60) | timestamp_custom("%H:%M", True) %} 
-      {% set time = states("sensor.time") %}
-      {{ time == before }}
+    - platform: template
+      value_template: >
+        {% set isha_time = as_timestamp(states("sensor.isha_adhan")) | timestamp_custom("%H:%M", True) %}
+        {% set time = states("sensor.time") %}
+        {{ time == isha_time }}
   action:
-  # turn on the light of the bedroom
-  - service: switch.turn_on
-    entity_id: switch.sonoff_1000814ec9 # the entity id of the sonoff switch, can be an other entity
-  # play a routine on Alexa
-  - service: media_player.play_media
-    entity_id: media_player.zehhaf_s_echo_dot # the entity id of your alexa device
-    data:
-      media_content_id: bonjour # the routine name configured on Alexa mobile app, it can be a sequence of actions, like flash info, weather ...etc
-      media_content_type: routine
-  initial_state: true
-  mode: single      
-
-# Play adhan on a connected speaker
-- id: 'isha_adhan'
-  alias: Isha adhan
-  trigger:
-    platform: template
-    value_template: >
-      {% set isha_time = as_timestamp(states("sensor.isha_adhan")) | timestamp_custom("%H:%M", True) %} 
-      {% set time = states("sensor.time")  %}
-      {{ time == isha_time }}
-  action:
-    - service: mqtt.publish
-      data_template:
-        topic: 'commande/play/mini'
-        payload: 'http://192.168.10.101/mp3/adhan.mp3' # an http url to mp3 file
-  initial_state: true
+    - action: media_player.play_media
+      target:
+        entity_id: media_player.living_room_speaker
+      data:
+        media_content_id: "http://YOUR_SERVER/adhan.mp3"
+        media_content_type: music
   mode: single
 ```
 
-## Français
+### Turn on lights 20 minutes before Fajr
 
-Ce composant permet d'intégrer les données de votre mosquée Mawaqit dans Home Assistant. Pour ce faire, Un compte Mawaqit **https://mawaqit.net** est nécessaire.
+```yaml
+- id: "fajr_wakeup"
+  alias: Turn on bedroom light before Fajr
+  trigger:
+    - platform: template
+      value_template: >
+        {% set before = (as_timestamp(states("sensor.fajr_adhan")) - 20 * 60) | timestamp_custom("%H:%M", True) %}
+        {% set time = states("sensor.time") %}
+        {{ time == before }}
+  action:
+    - action: light.turn_on
+      target:
+        entity_id: light.bedroom
+  mode: single
+```
 
-Le composant est rajouté à Home Assistant sous forme d'une intégration. Pour l'installation, il faut copier le dossier **[custom_components/mawaqit](custom_components/mawaqit)** dans le répertoire _custom_components_ de votre installation Home Assistant (créez le s'il n'existe pas).
+> **Note:** Make sure you have the `time_date` sensor configured in your Home Assistant for these automations to work:
+>
+> ```yaml
+> sensor:
+>   - platform: time_date
+>     display_options:
+>       - "time"
+> ```
 
-Après le redémarrage de Home Assistant, allez dans _Paramètres > Appareils et Services > Ajouter une intégration_ et cherchez **"Mawaqit"**. Entrez le login et mot de passe de votre compte **mawaqit.net** et cliquez sur **Valider**. En se basant sur vos coordonnées GPS (latitude/longitude) enregistrées dans Home Assistant, le composant cherche les mosquées Mawaqit dans un rayon de 20 km autour de vous et vous demande de sélectionner votre mosquée préférée.
+---
 
-L'intégration permet de rajouter 14 composants de type ```sensor``` : les 5 horaires des prières, les iqamas associées, le Shuruq, les horaires de Jumu'a et un sensor ```sensor.my_mosque``` qui résume toutes les données de votre mosquée (adresse, site web, jumua, iqama, etc...).
+## Troubleshooting
 
-Dans le fichier configuration.yaml, vous avez un exemple de code pour créer des automatismes dans Home Assistant avec les sensors Mawaqit notamment pour lancer l'athan à l'heure de la prière ou encore pour lancer des actions spécifiques (lire le Coran, augmenter le chauffage 10 minutes avant Al-Fajr, ouvrir les volets lors du Shuruq etc...). Les actions sont à adapter en fonction de vote installation Home Assistant.
+**Getting "authentication failed" or 401 errors?**
+Delete the MAWAQIT integration from Settings > Devices & Services, restart Home Assistant, and add it again. This ensures fresh credentials are stored.
+
+**No mosques found near you?**
+Check that your Home Assistant location (Settings > System > General) has the correct latitude and longitude. Alternatively, use the **keyword search** option to find your mosque by name.
+
+**Integration not showing up after install?**
+Make sure you restarted Home Assistant after installing via HACS or manually.
+
+---
+
+## Credits
+
+This integration is based on the work of the [MAWAQIT](https://mawaqit.net) team. The original repository is at [mawaqit/home-assistant](https://github.com/mawaqit/home-assistant).
+
+This fork (v3.1.0) fixes critical authentication issues that prevented prayer times from being fetched, along with several other stability improvements.
+
+---
+
+## Francais
+
+Ce composant integre les horaires de prieres de votre mosquee [mawaqit.net](https://mawaqit.net) dans Home Assistant.
+
+### Installation via HACS
+
+1. Ouvrez **HACS** dans Home Assistant
+2. Menu 3 points > **Custom repositories**
+3. Collez l'URL : `https://github.com/shadynafie/mawaqit`
+4. Categorie : **Integration**
+5. Cliquez **Add**, puis installez **MAWAQIT**
+6. **Redemarrez Home Assistant**
+
+### Configuration
+
+1. Apres le redemarrage, allez dans **Parametres > Appareils et Services > Ajouter une integration**
+2. Cherchez **"Mawaqit"**
+3. Entrez vos identifiants **mawaqit.net**
+4. Choisissez votre methode de recherche :
+   - **Par coordonnees** -- trouve les mosquees dans un rayon de 20 km
+   - **Par mot-cle** -- cherchez une mosquee par son nom
+5. Selectionnez votre mosquee
+
+L'integration cree des capteurs pour les 5 horaires de prieres, les iqamas, le Shuruq, les horaires de Jumu'a, ainsi qu'un capteur `sensor.my_mosque` qui resume toutes les donnees de votre mosquee.
