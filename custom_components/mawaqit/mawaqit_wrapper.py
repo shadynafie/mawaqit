@@ -158,7 +158,8 @@ async def _fetch_prayer_times_direct(mosque_id, token):
         "Authorization": f"{token}",
         "Content-Type": "application/json",
     }
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=30)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         async with session.get(url, headers=headers) as response:
             if response.status != 200:
                 _LOGGER.error(
