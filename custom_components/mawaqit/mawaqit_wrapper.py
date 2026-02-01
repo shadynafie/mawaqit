@@ -31,10 +31,7 @@ async def _create_authenticated_client(
     Returns the authenticated client (caller must close it).
     """
     if username and password:
-        _LOGGER.debug(
-            "Creating client with credentials (username=%s), will perform fresh login",
-            username,
-        )
+        _LOGGER.debug("Creating client with credentials, will perform fresh login")
         client = AsyncMawaqitClient(
             latitude=latitude,
             longitude=longitude,
@@ -42,8 +39,12 @@ async def _create_authenticated_client(
             username=username,
             password=password,
         )
-        await client.get_api_token()  # token is None → calls login() → gets fresh token
-        _LOGGER.debug("Fresh login succeeded, token obtained")
+        try:
+            await client.get_api_token()  # token is None → calls login() → gets fresh token
+            _LOGGER.debug("Fresh login succeeded, token obtained")
+        except Exception:
+            await client.close()
+            raise
     else:
         _LOGGER.debug("Creating client with existing token only (no credentials)")
         client = AsyncMawaqitClient(
@@ -159,16 +160,22 @@ async def _fetch_prayer_times_direct(mosque_id, token):
         "Content-Type": "application/json",
     }
     timeout = aiohttp.ClientTimeout(total=30)
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        async with session.get(url, headers=headers) as response:
-            if response.status != 200:
-                _LOGGER.error(
-                    "Direct prayer times fetch failed: status=%s for mosque %s",
-                    response.status,
-                    mosque_id,
-                )
-                return None
-            return await response.json()
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url, headers=headers) as response:
+                if response.status != 200:
+                    _LOGGER.error(
+                        "Direct prayer times fetch failed: status=%s for mosque %s",
+                        response.status,
+                        mosque_id,
+                    )
+                    return None
+                return await response.json()
+    except aiohttp.ClientError as err:
+        _LOGGER.error(
+            "Direct prayer times fetch failed for mosque %s: %s", mosque_id, err
+        )
+        return None
 
 
 async def fetch_prayer_times(
